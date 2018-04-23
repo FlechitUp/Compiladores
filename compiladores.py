@@ -1,5 +1,479 @@
 # !/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+import re
+file = open('codigoFuente.txt', 'r')
+data = file.readlines()
+file.close()
+listaTokens = []
+
+# Comentarios
+#-----------------------------------------------------------------------------
+def removeComments(string):
+    string = re.sub(re.compile("/\*.*?\*/",re.DOTALL ) ,"" ,string) # remueve los comentarios de varias filas (/*COMMENT */)
+    string = re.sub(re.compile("//.*?\n" ) ,"" ,string) # remueve todos los comentarios de una sola linea (//COMMENT\n )
+    if (re.compile("//*.*"), "", string):
+        string = re.sub(re.compile("//*.*"), "#@", string)
+        print("cadena: "+string);
+    return string
+
+
+
+
+# Diccionario Tokens
+# -----------------------------------------------------------------------------
+exp_ID = re.compile('[a-zA-Z]+[a-zA-Z1-9/_]*')
+exp_Num = re.compile('[0-9]+')
+
+select = 'PR_select'
+from_ = 'PR_from'
+where = 'PR_where'
+insert = 'PR_insert'
+into = 'PR_into'
+update = 'PR_update'
+set_ = 'PR_set'
+del_ = 'PR_delete'
+values = 'PR_values'
+innerJ = 'PR_IJ'
+leftJ = 'PR_LJ'
+rightJ = 'PR_RJ'
+join = 'PR_join'
+on = 'PR_on'
+groupBy = 'PR_GBy'
+by = 'PR_By'
+funct = 'PR_funct'
+coment = 'PR_comentario'
+op_arti = 'OP_aritmetica'
+op_rel = 'OP_relacional'
+op_bool = 'OP_booleano'
+id_ = 'ID'
+op_pc = 'OP_puntuacion'
+int_= 'PR_int'
+float_ = 'PR_float'
+string_ = 'PR_string'
+double_ = 'PR_double'
+agrup = 'PR_agrupa'
+
+
+# Preprocesamiento
+#-----------------------------------------------------------------------------
+def preprocesamiento():
+    contador = 0
+    contCar = 0
+    linea = 1
+    lexema = []
+    numLinea = []
+    token = []
+    inicio = []
+
+    for renglon in data:
+        noCommetns = removeComments(renglon)
+        #print("sin comentario: "+renglon)
+        for palabra in  noCommetns.split(' '):
+        #    if palabra == "":
+        #        continue
+
+            #print("palabra:"+palabra+"n")
+            subpalabras = list(filter(None, re.split(r"([+]|-|[*]|[/]|;|,|[.]|[']|=|<=|>=|<|>|[(]|[)]|[[]|[]]|{|}|[\r])", palabra)))
+            #se sacan las subpalabras que pueden haber ejem. 2+4 -> 2 + 4
+            for delimitadores in subpalabras:
+                if(delimitadores == "#@"):
+                    print ("Error de comentario en la Linea: ",linea)
+                    contador += 1
+                    break
+                contador += 1
+                #print '%s) %s' % (str(contador), delimitadores)
+                if(delimitadores != ('\n')):
+                    if (delimitadores != ('\r')):
+                        lexema.append(delimitadores)
+                        numLinea.append(linea)
+                    #    contCar = noCommetns.index(delimitadores)
+                    #    inicio.append(contCar)
+                        token.append("PR_Undefined")
+        linea = linea + 1
+
+    x=0;
+    numToken = 0;
+    while x < len(lexema):
+        lista = []
+        lexem = lexema[x].replace('\n','')
+        temp = lexem.lower()
+        """    lista.append(lexema[x].replace('\n',''))
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            lista.append(inicio[x])
+        """
+                #print ('temp '+temp)
+                ##falta poner esto
+        if temp == "int":
+            listaTokens[x][2] = int_
+        elif temp == "float":
+            listaTokens[x][2] = float_
+        elif temp == "string":
+            listaTokens[x][2] = string_
+        elif temp == "'":
+            if (x+1) and re.match(exp_ID, lexema[x+1]):
+                    #print m;
+
+                if lexema[x+2] == "'" :
+                    lexem += lexema[x+1]+lexema[x+2]
+                    ##    listaTokens[x][2] = op_pc
+                    lista.append(lexem)
+                    lista.append(numLinea[x])
+                    lista.append(token[x])
+                        # lista.append(inicio[x])
+                    listaTokens.append(lista)
+                    listaTokens[numToken][2] =  "PR_varchar"
+                    numToken+=1
+                    x = x + 2
+
+        #    lista.append(lexem)
+        #    lista.append(numLinea[x])
+        #    lista.append(token[x])
+        #    # lista.append(inicio[x])
+        #    listaTokens.append(lista)
+        #    listaTokens[numToken][2] = "OP_comilla"
+        #    numToken+=1
+        elif temp == "true" or temp == "false":
+        #    listaTokens[x][2] = "PR_bool"
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+        #    # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] = "PR_bool"
+            numToken+=1
+
+        elif temp == "(" or temp == ")" or temp == "{" or temp == "}" or temp == "[" or  temp == "]":
+            #listaTokens[x][2] = agrup
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] = agrup
+            numToken+=1
+
+            #    elif temp == "&&" ||  temp == "||":
+
+            #        listaTokens[x][2] = "tkn_And"
+
+            #        listaTokens[x][2] = "tkn_Or"
+
+        elif temp == "<" or temp == "=" or temp == ">" or temp == "<=" or temp == ">=" or temp == "==" or temp == "!=":
+        #    listaTokens[x][2] = op_rel
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] = op_rel
+            numToken+=1
+
+        elif temp == "+" or temp == "-" or temp == "*" or temp == "/":
+        #    listaTokens[x][2] = op_arti
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] = op_arti
+            numToken+=1
+
+        elif temp == "select":
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] = select
+            numToken+=1
+
+        elif temp == "from":
+            #listaTokens[x][2] = from_
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  from_
+            numToken+=1
+        elif temp == "where":
+            #listaTokens[x][2] = where
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  where
+            numToken+=1
+        elif temp == "insert":
+            #listaTokens[x][2] = insert
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  insert
+            numToken+=1
+        elif temp == "into":
+        #    listaTokens[x][2] = into
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  into
+            numToken+=1
+        elif temp == "update":
+        ##    listaTokens[x][2] = update
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  update
+            numToken+=1
+        elif temp == "set":
+        ##    listaTokens[x][2] = set_
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  set_
+            numToken+=1
+        elif temp == "delete":
+        #    listaTokens[x][2] = del_
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  del_
+            numToken+=1
+        elif temp == "values":
+        #    listaTokens[x][2] = values
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  values
+            numToken+=1
+        elif temp == "inner":
+        #    listaTokens[x][2] = innerJ
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  innerJ
+            numToken+=1
+        elif temp == "left":
+        #    listaTokens[x][2] = leftJ
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  leftJ
+            numToken+=1
+        elif temp == "right":
+            #listaTokens[x][2] = rightJ
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  rightJ
+            numToken+=1
+        elif temp == "join":
+        ##    listaTokens[x][2] = join
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  join
+            numToken+=1
+        elif temp == "on":
+        #    listaTokens[x][2] = on
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  on
+            numToken+=1
+        elif temp == "group":
+        ##    listaTokens[x][2] = groupBy
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  groupBy
+            numToken+=1
+        elif temp == "by":
+        #    listaTokens[x][2] = by
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  by
+            numToken+=1
+        elif temp == "null":
+        #    listaTokens[x][2] = 'PR_null'
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  'PR_null'
+            numToken+=1
+        elif temp == "count" or  temp == "max" or temp == "min" or temp == "avg" or temp == "sum":
+        #    listaTokens[x][2] = funct
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  funct
+            numToken+=1
+
+        #    exp_bool = re.compile('[all | and | any | between | exists | in | like | not | or ]')
+        elif temp == "and" or temp == "or" or  temp == "any" or temp == "in" or temp == "like" or temp == "not":
+            ##listaTokens[x][2] = op_bool
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  op_bool
+            numToken+=1
+
+
+        elif re.match(exp_ID, temp):
+            m = re.match(exp_ID, temp)
+                    #print m;
+            if len(m.group(0)) == len(temp):
+                    #    print ('m:     '+m.group(0));
+        #        listaTokens[x][2] = id_
+                lista.append(lexem)
+                lista.append(numLinea[x])
+                lista.append(token[x])
+                # lista.append(inicio[x])
+                listaTokens.append(lista)
+                listaTokens[numToken][2] =  id_
+                numToken+=1
+            else:
+                print ("Error cadena no encontrada en la Linea: ", listaTokens[x][1])
+
+        elif re.match(exp_Num, temp): #evaluar exp reg
+            m = re.match(exp_Num, temp)
+            #es un float
+            if (x+1)<len(lexema) and lexema[x+1] == "." and re.match(exp_Num, lexema[x+2] ):
+                lexem += lexema[x+1]+lexema[x+2]
+            ##    listaTokens[x][2] = op_pc
+                lista.append(lexem)
+                lista.append(numLinea[x])
+                lista.append(token[x])
+                # lista.append(inicio[x])
+                listaTokens.append(lista)
+                listaTokens[numToken][2] =  "PR_float"
+                numToken+=1
+                x = x + 2
+            elif len(m.group(0)) == len(temp):
+                lista.append(lexem)
+                lista.append(numLinea[x])
+                lista.append(token[x])
+                # lista.append(inicio[x])
+                listaTokens.append(lista)
+                listaTokens[numToken][2] = "PR_int"
+                numToken+=1
+            #    listaTokens[x][2] = "PR_int"
+            #    print ('m:     '+m.group(0));
+            else:
+                print ("Error cadena no encontrada en la Linea: ", temp)#listaTokens[x][1])
+        elif temp == ";" or temp == "," or temp == "." :
+            lista.append(lexem)
+            lista.append(numLinea[x])
+            lista.append(token[x])
+            # lista.append(inicio[x])
+            listaTokens.append(lista)
+            listaTokens[numToken][2] =  op_pc
+            numToken+=1
+        else:
+            print ("Error cadena no encontrada en la Linea: ",temp)#listaTokens[x][1])
+
+        x+=1;
+
+
+                ###fin del while
+                    #Agregar a tabla de errores
+################################################################3333
+
+    #    print ("lista "),
+    #    print (lista)
+
+
+# Tabla de Símbolos
+#-----------------------------------------------------------------------------
+tablaSimbolos = {}
+
+# Hasta antes de Semántico, solo registra los identificadores en la TS.
+def tablaSim(listaTokens):
+    for id in range(0,len(listaTokens)):
+        tam = len(listaTokens[id][0])
+        if listaTokens[id][2] == id_:
+            if (tablaSimbolos.has_key(listaTokens[id][0]) == False):
+                tablaSimbolos[listaTokens[id][0]] = {'Lexema': listaTokens[id][0], 'Tam': tam , 'Token':listaTokens[id][2], 'Linea': [listaTokens[id][1]]}
+#"""'Inicio': [listaTokens[id][3]],"""
+            #Else actualiza linea.
+    #       if (tablaSimbolos.has_key(listaTokens[id][0]) == False):
+    #            if listaTokens[id][2] == "TKN_id":
+
+#                tablaSimbolos[listaTokens[id][0]] = {'Lexema': listaTokens[id][0], 'Valor': '','Tam': '', 'Type':'','Linea': [listaTokens[id][1]]}
+            else:
+                tablaSimbolos[listaTokens[id][0]]['Linea'].append(listaTokens[id][1])
+
+                # Si ya están indexados, se actualiza numLínea
+                #porque se tienen que poner en todas las lineas en donde se enceuntre
+
+
+def imprimirTS():
+    for key in tablaSimbolos:
+        print key, ":", tablaSimbolos[key]
+
+
+
+
+# Imprimir
+#-----------------------------------------------------------------------------
+def imprimir(listaTokens):
+    cont = 0
+    for x in range(0, len(listaTokens)):
+        cont += 1
+        print (str(cont) +") " ),
+        print ( listaTokens[x])
+    print ("***********************************************")
+
+
+
+
+preprocesamiento()
+#tokens(listaTokens)
+imprimir(listaTokens)
+tablaSim(listaTokens)
+imprimirTS()
+
+#for key in tablaSimbolos:
+#    print key, ":", tablaSimbolos[key]
+
+
+"""
 import re
 file = open('codigoFuente.txt', 'r')
 data = file.readlines()
@@ -67,9 +541,8 @@ def preprocesamiento():
 
 # Diccionario Tokens
 # -----------------------------------------------------------------------------
-tknIdentificador = re.compile('[a-zA-Z]+[a-zA-Z1-9/_]*')
-tknNumero = re.compile('[0-9]+')
-exp_ID = re.compile('[0-9]+')
+exp_ID = re.compile('[a-zA-Z]+[a-zA-Z1-9/_]*')
+exp_Num = re.compile('[0-9]+')
 #    exp_num= re.compile('[0-9]')
 #    exp_arit = re.compile('[+|-|*]')
 #    exp_rel = re.compile('[= | <=> | <> | != | > | >= | < | <=]')
@@ -184,12 +657,12 @@ def  tokens(listaTokens):
             listaTokens[token][2] = op_bool
 
 
-        elif re.match(tknIdentificador, temp):
-            m = re.match(tknIdentificador, temp)
+        elif re.match(exp_ID, temp):
+            m = re.match(exp_ID, temp)
             #print m;
             if len(m.group(0)) == len(temp):
             #    print ('m:     '+m.group(0));
-                listaTokens[token][2] = "TKN_id"
+                listaTokens[token][2] = id_
             else:
                 print ("Error cadena no encontrada en la Linea: ", listaTokens[token][1])
 
@@ -212,7 +685,7 @@ tablaSimbolos = {}
 def tablaSim(listaTokens):
     for id in range(0,len(listaTokens)):
         tam = len(listaTokens[id][0])
-        if listaTokens[id][2] == "TKN_id":
+        if listaTokens[id][2] == :
             if (tablaSimbolos.has_key(listaTokens[id][0]) == False):
                 tablaSimbolos[listaTokens[id][0]] = {'Lexema': listaTokens[id][0], 'Inicio': [listaTokens[id][3]],'Tam': tam , 'Token':[listaTokens[id][2]], 'Linea': [listaTokens[id][1]]}
 
@@ -256,3 +729,5 @@ imprimirTS()
 
 #for key in tablaSimbolos:
 #    print key, ":", tablaSimbolos[key]
+
+"""
