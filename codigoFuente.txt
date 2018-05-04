@@ -1,28 +1,13 @@
 
-// nvkslv
-/* dsdg */
-//
-/
-
-select * from alumnos where alumnos.id<=2.06;
-
-INSERT INTO RESERVA (Id_trabajador_check_in,Id_huesped,Id_cama, Fecha_de_ingreso) VALUES (1,5,19,CURRENT_TIMESTAMP)
+//select * from alumnos where id<=2.06
 
 
-SELECT
-Persona.Nombre,
-Persona.Apellidos,
-Persona.Telefono,
-Persona.Direccion,
-Persona.Nacionalidad
-FROM Persona
-INNER JOIN Reserva
-ON
-Persona.Id=Reserva.Id_huesped
-INNER JOIN Cama
-ON
-Reserva.Id_cama=Cama.Id
-WHERE
- Cama.Id_habitacion=2
-AND
- Reserva.fecha_de_salida IS NULL;
+/*INSERT INTO RESERVA ('Id_trabajador_check_in',Id_huesped,Id_cama, Fecha_de_ingreso) VALUES (1,5,19,CURRENT_TIMESTAMP)*/
+
+//select id.id, alumno from alumno inner join id on a.id=k.id
+
+//UPDATE habitacion set activa=false WHERE id=1 and num=2
+
+//DELETE FROM table_name WHERE condition
+
+SELECT AVG(column_name) i FROM table_name is WHERE condition
